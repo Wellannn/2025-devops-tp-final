@@ -7,7 +7,7 @@ on:
 
 jobs:
   backend-ci:
-    name: 🐘 Backend (Go) Checks
+    name: Backend (Go) Checks
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -34,7 +34,7 @@ jobs:
         run: go fmt -n .
 
   frontend-ci:
-    name: ⚛️ Frontend (React) Checks
+    name: Frontend (React) Checks
     runs-on: ubuntu-latest
     defaults:
       run:

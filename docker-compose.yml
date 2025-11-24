@@ -1,20 +1,17 @@
 version: '3.8'
 
 services:
-  # 1. Base de Données PostgreSQL
   postgres:
     image: postgres:15-alpine
     container_name: christmas-gifts-db
     restart: always
     environment:
-      # Les identifiants par défaut du projet
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: christmas_gifts
     ports:
       - "5432:5432"
     volumes:
-      # Volume pour la persistance des données
       - db-data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -22,7 +19,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # 2. Serveur API Go (Backend)
   backend:
     build:
       context: ./backend
@@ -30,19 +26,14 @@ services:
     container_name: christmas-gifts-backend
     restart: on-failure
     environment:
-      # Variable d'environnement pour la connexion à la DB
-      # 'postgres' est le nom du service DB dans Docker Compose
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/christmas_gifts?sslmode=disable
       PORT: 8080
     ports:
       - "8080:8080"
     depends_on:
-      # Attendre que la base de données soit prête avant de démarrer
       postgres:
         condition: service_healthy
-    # L'application Go exécute automatiquement les migrations au démarrage (selon le README)
     
-  # 3. Application React (Frontend)
   frontend:
     build:
       context: ./frontend
@@ -52,7 +43,6 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      # Le frontend a besoin du backend pour fonctionner
       - backend
 
 volumes:
