@@ -1,0 +1,102 @@
+name: CD - Continuous Deployment & Release
+
+on:
+  push:
+    branches:
+      - develop
+      - main
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  deploy:
+    name: Deploy to Environment
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/develop' && 'Staging' || 'Production' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Define Image Tag and Environment
+        id: tag_vars
+        run: |
+          if [ "${{ github.ref }}" == "refs/heads/develop" ]; then
+            echo "IMAGE_TAG=dev" >> $GITHUB_OUTPUT
+            echo "ENV_NAME=PRE-PRODUCTION" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/tags/v"* ]]; then
+            echo "IMAGE_TAG=${{ github.ref_name }}" >> $GITHUB_OUTPUT # Le nom du tag (ex: v1.0.0)
+            echo "ENV_NAME=PRODUCTION" >> $GITHUB_OUTPUT
+          else
+            # Pour la branche main (push sans tag, on utilise le sha court)
+            echo "IMAGE_TAG=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+            echo "ENV_NAME=PRODUCTION" >> $GITHUB_OUTPUT
+          fi
+          echo "DOCKER_USER=${{ secrets.DOCKERHUB_USERNAME }}" >> $GITHUB_OUTPUT
+
+      - name: Show Deployment Details
+        run: |
+          echo "Déploiement vers: ${{ steps.tag_vars.outputs.ENV_NAME }}"
+          echo "Tag des images Docker: ${{ steps.tag_vars.outputs.IMAGE_TAG }}"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ steps.tag_vars.outputs.DOCKER_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and Push Backend Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          file: ./backend/Dockerfile
+          push: true
+          tags: ${{ steps.tag_vars.outputs.DOCKER_USER }}/gift-list-backend:${{ steps.tag_vars.outputs.IMAGE_TAG }}
+          
+      - name: Build and Push Frontend Image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: ${{ steps.tag_vars.outputs.DOCKER_USER }}/gift-list-frontend:${{ steps.tag_vars.outputs.IMAGE_TAG }}
+
+      - name: Trigger PaaS Deployment Hook (e.g., Render)
+        run: |
+          echo "Déclenchement du redéploiement sur ${{ steps.tag_vars.outputs.ENV_NAME }}"
+          # Remplacez ceci par la commande réelle de déploiement de votre PaaS/Cloud
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+        env:
+          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
+          
+      - name: Run E2E Tests on Production Environment
+        if: ${{ steps.tag_vars.outputs.ENV_NAME == 'PRODUCTION' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          
+      - name: Install E2E Dependencies
+        if: ${{ steps.tag_vars.outputs.ENV_NAME == 'PRODUCTION' }}
+        run: npm install
+        working-directory: ./e2e
+        
+      - name: Run Playwright Tests
+        if: ${{ steps.tag_vars.outputs.ENV_NAME == 'PRODUCTION' }}
+        run: npm test
+        working-directory: ./e2e
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ secrets.PROD_WEBSITE_URL }} 
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release ${{ github.ref_name }}
+          body: |
+            **Release ${{ github.ref_name }}**
+            
+            Cette version inclut toutes les mises à jour fusionnées dans la branche main.
+            *Images Docker disponibles sur Docker Hub avec le tag `${{ github.ref_name }}`.*
+          draft: false
+          prerelease: false
