@@ -1,3 +1,7 @@
+[![CI - Continuous Integration Checks](https://github.com/Wellannn/2025-devops-tp-final/actions/workflows/ci.yml/badge.svg)](https://github.com/Wellannn/2025-devops-tp-final/actions/workflows/ci.yml)
+
+[![CD - Continuous Deployment & Release](https://github.com/Wellannn/2025-devops-tp-final/actions/workflows/cd.yml/badge.svg)](https://github.com/Wellannn/2025-devops-tp-final/actions/workflows/cd.yml)
+
 # Christmas Gift List
 
 A full-stack web application for managing Christmas gift ideas with a festive theme. Keep track of people and their gift ideas, and select the perfect gift for everyone on your list!
