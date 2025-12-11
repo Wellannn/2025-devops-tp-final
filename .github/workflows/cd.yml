@@ -62,13 +62,11 @@ jobs:
           push: true
           tags: ${{ steps.tag_vars.outputs.DOCKER_USER }}/gift-list-frontend:${{ steps.tag_vars.outputs.IMAGE_TAG }}
 
+
       - name: Trigger PaaS Deployment Hook (e.g., Render)
         run: |
           echo "Déclenchement du redéploiement sur ${{ steps.tag_vars.outputs.ENV_NAME }}"
-          # Remplacez ceci par la commande réelle de déploiement de votre PaaS/Cloud
           curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
-        env:
-          RENDER_DEPLOY_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK }}
           
       - name: Run E2E Tests on Production Environment
         if: ${{ steps.tag_vars.outputs.ENV_NAME == 'PRODUCTION' }}
