@@ -264,3 +264,4 @@ The frontend uses Vite's proxy configuration to forward `/api` requests to the b
 ---
 
 Made with care for Christmas
+
