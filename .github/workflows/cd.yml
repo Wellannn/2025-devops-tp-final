@@ -68,6 +68,11 @@ jobs:
           echo "Déclenchement du redéploiement sur ${{ steps.tag_vars.outputs.ENV_NAME }}"
           curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
           
+      - name: Install Frontend Dependencies for E2E
+        if: ${{ steps.tag_vars.outputs.ENV_NAME == 'PRODUCTION' }} 
+        run: npm install
+        working-directory: ./frontend
+
       - name: Run E2E Tests on Production Environment
         if: ${{ steps.tag_vars.outputs.ENV_NAME == 'PRODUCTION' }}
         uses: actions/setup-node@v4
@@ -78,6 +83,12 @@ jobs:
         if: ${{ steps.tag_vars.outputs.ENV_NAME == 'PRODUCTION' }}
         run: npm install
         working-directory: ./e2e
+      
+
+      - name: Launch Frontend Dev Server
+        if: ${{ steps.tag_vars.outputs.ENV_NAME == 'PRODUCTION' }}
+        run: npm run dev & 
+        working-directory: ./frontend
         
       - name: Run Playwright Tests
         if: ${{ steps.tag_vars.outputs.ENV_NAME == 'PRODUCTION' }}
